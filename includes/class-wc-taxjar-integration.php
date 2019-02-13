@@ -50,6 +50,9 @@ class WC_Taxjar_Integration extends WC_Integration {
 			// Calculate Taxes for Backend Orders (Woo 2.6+)
 			add_action( 'woocommerce_before_save_order_items', array( $this, 'calculate_backend_totals' ), 20 );
 
+			// Calculate Taxes for Orders Created Through the API
+            add_filter( 'woocommerce_rest_pre_insert_shop_order_object', array( $this, 'calculate_api_totals'), 20, 3);
+
 			// Settings Page
 			add_action( 'woocommerce_sections_tax',  array( $this, 'output_sections_before' ),  9 );
 
@@ -642,6 +645,47 @@ class WC_Taxjar_Integration extends WC_Integration {
 			}
 		}
 	}
+
+    /**
+     * Calculate tax / totals using TaxJar for API orders
+     *
+     * @return WC_Order
+     */
+    public function calculate_api_totals( $order, $request, $creating ) {
+
+        if ( !$creating ) {
+            return $order;
+        }
+
+        //$address = $this->get_backend_address();
+        $address = array(
+            'to_country' => $order->get_shipping_country(),
+            'to_state' => $order->get_shipping_state(),
+            'to_zip' => $order->get_shipping_postcode(),
+            'to_city' => $order->get_shipping_city(),
+            'to_street' => $order->get_shipping_address_1(),
+        );
+
+        $line_items = $this->get_backend_line_items( $order );
+
+        if ( method_exists( $order, 'get_shipping_total' ) ) {
+            $shipping = $order->get_shipping_total(); // Woo 3.0+
+        } else {
+            $shipping = $order->get_total_shipping(); // Woo 2.6
+        }
+
+        $taxes = $this->calculate_tax( array(
+            'to_country' => $address['to_country'],
+            'to_state' => $address['to_state'],
+            'to_zip' => $address['to_zip'],
+            'to_city' => $address['to_city'],
+            'to_street' => $address['to_street'],
+            'shipping_amount' => $shipping,
+            'line_items' => $line_items,
+        ) );
+
+        return $order;
+    }
 
 	/**
 	 * Get address details of customer at checkout
