@@ -19,18 +19,23 @@ class TaxJar_WC_Unit_Tests_Bootstrap {
 
 		$this->api_token = getenv( 'TAXJAR_API_TOKEN' );
 
+        require_once $this->wp_tests_dir . 'includes/functions.php';
+
+        // load WC
+        tests_add_filter( 'muplugins_loaded', array( $this, 'load_wc' ) );
+
+        // install WC
+        tests_add_filter( 'setup_theme', array( $this, 'install_wc' ) );
+
 		$this->includes();
 
 		$this->setup();
 	}
 
 	public function includes() {
-		// load the WP testing environment
-		require_once $this->wp_tests_dir . 'includes/functions.php';
-		require_once $this->wp_tests_dir . 'includes/bootstrap.php';
 
-		// load woocommerce core
-		require_once $this->plugin_dir . 'woocommerce/woocommerce.php';
+		// load the WP testing environment
+		require_once $this->wp_tests_dir . 'includes/bootstrap.php';
 
 		// load taxjar core
 		require_once $this->plugin_dir . 'taxjar-woocommerce-plugin/taxjar-woocommerce.php';
@@ -64,15 +69,42 @@ class TaxJar_WC_Unit_Tests_Bootstrap {
 		);
 
 		update_option( 'woocommerce_default_country', 'US:CO' );
-		update_option( 'woocommerce_calc_shipping', 'yes' );
-		update_option( 'woocommerce_coupons_enabled', 'yes' );
-
-		$wc_install = new WC_Install;
-		$wc_install->install();
+        update_option( 'woocommerce_calc_shipping', 'yes' );
+        update_option( 'woocommerce_coupons_enabled', 'yes' );
+        update_option( 'woocommerce_currency', 'USD');
 
 		do_action( 'plugins_loaded' );
-		do_action( 'woocommerce_init' );
 	}
+
+    public function load_wc() {
+        define( 'WC_TAX_ROUNDING_MODE', 'auto' );
+        define( 'WC_USE_TRANSACTIONS', false );
+        require_once $this->plugin_dir . 'woocommerce/woocommerce.php';
+    }
+
+    /**
+     * Install WooCommerce after the test environment and WC have been loaded.
+     *
+     */
+    public function install_wc() {
+
+        // Clean existing install first.
+        define( 'WP_UNINSTALL_PLUGIN', true );
+        define( 'WC_REMOVE_ALL_DATA', true );
+        include $this->plugin_dir . 'woocommerce/uninstall.php';
+
+        WC_Install::install();
+
+        // Reload capabilities after install, see https://core.trac.wordpress.org/ticket/28374
+        if ( version_compare( $GLOBALS['wp_version'], '4.7', '<' ) ) {
+            $GLOBALS['wp_roles']->reinit();
+        } else {
+            $GLOBALS['wp_roles'] = null; // WPCS: override ok.
+            wp_roles();
+        }
+
+        echo esc_html( 'Installing WooCommerce...' . PHP_EOL );
+    }
 
 	public static function instance() {
 		if ( is_null( self::$instance ) ) {
