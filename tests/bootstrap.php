@@ -47,6 +47,7 @@ class TaxJar_WC_Unit_Tests_Bootstrap {
 		require_once $this->tests_dir . '/framework/product-helper.php';
 		require_once $this->tests_dir . '/framework/shipping-helper.php';
         require_once $this->tests_dir . '/framework/wp-http-testcase.php';
+        require_once $this->tests_dir . '/framework/api-helper.php';
 
 		// load woocommerce subscriptions
 		update_option( 'active_plugins', array( 'woocommerce/woocommerce.php' ) );
