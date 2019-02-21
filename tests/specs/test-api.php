@@ -168,4 +168,50 @@ class TJ_WC_Tests_API extends WP_HTTP_TestCase {
         TaxJar_Shipping_Helper::delete_simple_flat_rate();
     }
 
+    /**
+     * Tests creating an order with local pickup on the V3 API
+     */
+    function test_correct_taxes_with_local_pickup_v3() {
+
+        wp_set_current_user( $this->user );
+        TaxJar_Shipping_Helper::delete_simple_flat_rate();
+        update_option( 'woocommerce_tax_based_on', 'base' );
+
+        $request = TaxJar_API_Helper::build_api_v3_request(
+            array(
+                'billing'              => array(
+                    'city'       => 'New York City',
+                    'state'      => 'NY',
+                    'postcode'   => '10001',
+                ),
+                'shipping'             => array(
+                    'city'       => 'New York City',
+                    'state'      => 'NY',
+                    'postcode'   => '10001',
+                ),
+                'shipping_lines'       => array(
+                    array(
+                        'method_id'    => 'local_pickup',
+                        'method_title' => 'Local Pickup',
+                        'total'        => '0',
+                    ),
+                ),
+            )
+        );
+
+        $response = $this->server->dispatch( $request );
+        $data     = $response->get_data();
+
+        $this->assertEquals( 201, $response->get_status() );
+        $this->assertEquals( $data['total_tax'], 0.73, '', 0.01 );
+        $this->assertEquals( $data['cart_tax'], 0.73, '', 0.01 );
+        $this->assertEquals( $data['shipping_tax'], 0, '', 0.01 );
+
+        foreach ( $data['line_items'] as $key => $item ) {
+            $this->assertEquals( $item['total_tax'], 0.73, '', 0.01 );
+        }
+
+        update_option( 'woocommerce_tax_based_on', 'base' );
+    }
+
 }
