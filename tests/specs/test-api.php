@@ -108,7 +108,7 @@ class TJ_WC_Tests_API extends WP_HTTP_TestCase {
     /**
      * Tests creating an order from taxable shipping to exempt shipping on the V3 API
      */
-    function test_correct_taxes_from_taxable_shipping_to_exempt_shipping_api_v3() {
+    function test_correct_taxes_with_exempt_product_v3() {
 
         wp_set_current_user( $this->user );
 
@@ -128,12 +128,12 @@ class TJ_WC_Tests_API extends WP_HTTP_TestCase {
         $request = TaxJar_API_Helper::build_api_v3_request(
             array(
                 'billing'              => array(
-                    'city'       => 'Jersey City\'',
+                    'city'       => 'Jersey City',
                     'state'      => 'NJ',
                     'postcode'   => '07306',
                 ),
                 'shipping'             => array(
-                    'city'       => 'Jersey City\'',
+                    'city'       => 'Jersey City',
                     'state'      => 'NJ',
                     'postcode'   => '07306',
                 ),
@@ -164,10 +164,6 @@ class TJ_WC_Tests_API extends WP_HTTP_TestCase {
         $this->assertEquals( $data['total_tax'], 7.29, '', 0.01 );
         $this->assertEquals( $data['cart_tax'], 6.63, '', 0.01 );
         $this->assertEquals( $data['shipping_tax'], 0.66, '', 0.01 );
-
-//        foreach ( $data['line_items'] as $key => $item ) {
-//            $this->assertEquals( $item['total_tax'], 1.03, '', 0.01 );
-//        }
 
         TaxJar_Shipping_Helper::delete_simple_flat_rate();
     }
