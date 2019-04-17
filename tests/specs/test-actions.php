@@ -717,6 +717,144 @@ class TJ_WC_Actions extends WP_UnitTestCase {
 		}
 	}
 
+    function test_correct_taxes_for_percent_discounts() {
+        $product = TaxJar_Product_Helper::create_product( 'simple', array(
+            'price' => '100',
+            'sku' => 'SIMPLE2',
+        ) )->get_id();
+        $coupon = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'percent',
+        ) );
+
+        if ( version_compare( WC()->version, '3.0', '>=' ) ) {
+            $coupon = $coupon->get_code();
+        } else {
+            $coupon = $coupon->code;
+        }
+
+        WC()->cart->add_to_cart( $product );
+        WC()->cart->add_discount( $coupon );
+        WC()->cart->calculate_totals();
+
+        $this->assertEquals( WC()->cart->tax_total, 6.53, '', 0.01 );
+        $this->assertEquals( WC()->cart->get_taxes_total(), 6.53, '', 0.01 );
+
+        if ( version_compare( WC()->version, '3.2', '>=' ) ) {
+            $this->assertEquals( WC()->cart->get_total( 'amount' ), 96.53, '', 0.01 );
+        }
+    }
+
+    function test_correct_taxes_for_fixed_product_discounts() {
+        $product = TaxJar_Product_Helper::create_product( 'simple', array(
+            'price' => '110',
+            'sku' => 'SIMPLE2',
+        ) )->get_id();
+        $coupon = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'fixed_product',
+        ) );
+
+        if ( version_compare( WC()->version, '3.0', '>=' ) ) {
+            $coupon = $coupon->get_code();
+        } else {
+            $coupon = $coupon->code;
+        }
+
+        WC()->cart->add_to_cart( $product );
+        WC()->cart->add_discount( $coupon );
+        WC()->cart->calculate_totals();
+
+        $this->assertEquals( WC()->cart->tax_total, 7.25, '', 0.01 );
+        $this->assertEquals( WC()->cart->get_taxes_total(), 7.25, '', 0.01 );
+
+        if ( version_compare( WC()->version, '3.2', '>=' ) ) {
+            $this->assertEquals( WC()->cart->get_total( 'amount' ), 107.25, '', 0.01 );
+        }
+    }
+
+    function test_correct_taxes_for_multiple_fixed_product_discounts() {
+        $product = TaxJar_Product_Helper::create_product( 'simple', array(
+            'price' => '110',
+            'sku' => 'SIMPLE2',
+        ) )->get_id();
+        $coupon = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'fixed_product',
+            'code' => 'test',
+        ) );
+        $coupon2 = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '20',
+            'discount_type' => 'fixed_product',
+            'code' => 'test2',
+        ) );
+
+        if ( version_compare( WC()->version, '3.0', '>=' ) ) {
+            $coupon = $coupon->get_code();
+            $coupon2 = $coupon2->get_code();
+        } else {
+            $coupon = $coupon->code;
+            $coupon2 = $coupon2->code;
+        }
+
+        WC()->cart->add_to_cart( $product, 2 );
+        WC()->cart->add_discount( $coupon );
+        WC()->cart->add_discount( $coupon2 );
+        WC()->cart->calculate_totals();
+
+        $this->assertEquals( WC()->cart->tax_total, 11.60, '', 0.01 );
+        $this->assertEquals( WC()->cart->get_taxes_total(), 11.60, '', 0.01 );
+
+        if ( version_compare( WC()->version, '3.2', '>=' ) ) {
+            $this->assertEquals( WC()->cart->get_total( 'amount' ), 171.60, '', 0.01 );
+        }
+    }
+
+    function test_correct_taxes_with_all_discounts() {
+        $product = TaxJar_Product_Helper::create_product( 'simple', array(
+            'price' => '100',
+            'sku' => 'SIMPLE2',
+        ) )->get_id();
+        $coupon = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'fixed_cart',
+            'code' => 'test4',
+        ) );
+        $coupon2 = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'percent',
+            'code' => 'test5',
+        ) );
+        $coupon3 = TaxJar_Coupon_Helper::create_coupon( array(
+            'amount' => '10',
+            'discount_type' => 'fixed_product',
+            'code' => 'test6',
+        ) );
+
+        if ( version_compare( WC()->version, '3.0', '>=' ) ) {
+            $coupon = $coupon->get_code();
+            $coupon2 = $coupon2->get_code();
+            $coupon3 = $coupon3->get_code();
+        } else {
+            $coupon = $coupon->code;
+            $coupon2 = $coupon2->code;
+            $coupon3 = $coupon3->code;
+        }
+
+        WC()->cart->add_to_cart( $product, 2 );
+        WC()->cart->add_discount( $coupon );
+        WC()->cart->add_discount( $coupon2 );
+        WC()->cart->add_discount( $coupon3 );
+        WC()->cart->calculate_totals();
+
+        $this->assertEquals( WC()->cart->tax_total, 10.88, '', 0.01 );
+        $this->assertEquals( WC()->cart->get_taxes_total(), 10.88, '', 0.01 );
+
+        if ( version_compare( WC()->version, '3.2', '>=' ) ) {
+            $this->assertEquals( WC()->cart->get_total( 'amount' ), 160.88, '', 0.01 );
+        }
+    }
+
 	function test_correct_taxes_for_intrastate_origin_state() {
 		TaxJar_Woocommerce_Helper::set_shipping_origin( $this->tj, array(
 			'store_country' => 'US',
